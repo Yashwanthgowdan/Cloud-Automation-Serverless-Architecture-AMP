@@ -1,107 +1,80 @@
-Assignment 1: Automated Instance Management Using AWS Lambda and Boto3
+Assignment 2: Automated S3 Bucket Cleanup Using AWS Lambda and Boto3
 
 Objective:
-Gain hands-on experience with AWS Lambda and Boto3, Amazon’s Python SDK and creation of a Lambda function that automatically starts or stops EC2 instances based on their tags.
+Gain practical experience with AWS Lambda and Boto3 by creating a Lambda function that automatically deletes files older than 30 days in an S3 bucket.
 
-Requirements:
-1. Setup EC2 Instances
-2. Create IAM Role for Lambda
-3. Write and Deploy Lambda Function
-4. Test and Verify
+Task Goal: Automate the cleanup of old files in S3.
 
-⚙️ Step-by-Step Instructions
+What this task does:
+Lists objects in the bucket.
+Checks their last modified date.
+Deletes files older than 30 days.
+Logs which files were deleted.
 
-1. EC2 Setup
-Go to the EC2 Dashboard in AWS Console.
+Step-by-Step Instructions
+1. S3 Bucket Setup:
+Go to the S3 Dashboard.
+Create a new bucket.
+Upload multiple test files(old files if can)
 
-Launch two EC2 instances and Tag the instances:
-First instance: Key = Action | Value = Auto-Stop
-Second instance: Key = Action | Value = Auto-Start
-![image](https://github.com/user-attachments/assets/36696a9a-c4db-4419-a30a-a25782789ffc)
+2️. Create Lambda IAM Role
+Open the IAM Dashboard.
+Create a new role for Lambda.
+Attach the AmazonS3FullAccess policy.
 
-
-2. Create IAM Role for Lambda
-Go to the IAM Dashboard:
-Create a new IAM role with trusted entity Lambda.
-Attach the policy AmazonEC2FullAccess to this role.
-![image](https://github.com/user-attachments/assets/8f5a0cf2-bb0a-4683-bb8c-f2111dbf2287)
-
-3. Create Lambda Function
-Open the AWS Lambda Dashboard:
-Click Create function.
+3️. Create Lambda Function
+Open the AWS Lambda Dashboard.
+Click Create Function.
 Choose Python 3.13 runtime.
-Attach the IAM role you created.
-![image](https://github.com/user-attachments/assets/f4e64430-1357-43f3-b8e0-7689e85f7313)
+Attach the IAM role you created above.
 
-Write the following Python script on Lambda code:
+Add the following Python script:
 
 import boto3
+from datetime import datetime, timezone, timedelta
 
 def lambda_handler(event, context):
-    ec2 = boto3.client('ec2')
+    s3 = boto3.client('s3')
+    bucket_name = 'YOUR_BUCKET_NAME'  # Replace with your bucket name
 
-    # Stop instances with Action=Auto-Stop tag
-    stop_instances = ec2.describe_instances(
-        Filters=[
-            {'Name': 'tag:Action', 'Values': ['Auto-Stop']},
-            {'Name': 'instance-state-name', 'Values': ['running']}
-        ]
-    )
+    # Get the list of all objects in the bucket
+    response = s3.list_objects_v2(Bucket=bucket_name)
 
-    stop_ids = []
-    for reservation in stop_instances['Reservations']:
-        for instance in reservation['Instances']:
-            stop_ids.append(instance['InstanceId'])
+    if 'Contents' not in response:
+        print("No objects found in the bucket.")
+        return
 
-    if stop_ids:
-        ec2.stop_instances(InstanceIds=stop_ids)
-        print(f"Stopped instances: {stop_ids}")
+    # Calculate the threshold date
+    threshold_date = datetime.now(timezone.utc) - timedelta(days=30)
+
+    deleted_files = []
+
+    for obj in response['Contents']:
+        key = obj['Key']
+        last_modified = obj['LastModified']
+
+        if last_modified < threshold_date:
+            # Delete the object
+            s3.delete_object(Bucket=bucket_name, Key=key)
+            deleted_files.append(key)
+
+    if deleted_files:
+        print(f"Deleted objects older than 30 days: {deleted_files}")
     else:
-        print("No instances to stop.")
+        print("No objects older than 30 days found.")
 
-    # Start instances with Action=Auto-Start tag
-    start_instances = ec2.describe_instances(
-        Filters=[
-            {'Name': 'tag:Action', 'Values': ['Auto-Start']},
-            {'Name': 'instance-state-name', 'Values': ['stopped']}
-        ]
-    )
+How it works
+Initialize the S3 client.
+List objects using list_objects_v2.
+Compare LastModified with today’s date minus 30 days.
+Delete matching files.
+Print which files were removed.
 
-    start_ids = []
-    for reservation in start_instances['Reservations']:
-        for instance in reservation['Instances']:
-            start_ids.append(instance['InstanceId'])
+4️. Manual Invocation
+Save and deploy your Lambda function.
+Create a test event.
+Click Test to run.
 
-    if start_ids:
-        ec2.start_instances(InstanceIds=start_ids)
-        print(f"Started instances: {start_ids}")
-    else:
-        print("No instances to start.")
-
-This script:
-Finds all running instances tagged Auto-Stop and stops them.
-Finds all stopped instances tagged Auto-Start and starts them.
-
-Prints the instance IDs for logging.
-
-4. Test the Lambda Function
-   
-Deploy your Lambda function.
-Click Test and run it manually.
-
-Go back to the EC2 Dashboard to verify:
-The Auto-Stop instance is stopped.
-The Auto-Start instance is running.
-
-Instances before runing the script:
-
-![image](https://github.com/user-attachments/assets/0918edd4-81bf-4840-97c9-d6d79e414152)
-
-Instances after runing the script:
-
-![image](https://github.com/user-attachments/assets/5327ace1-c73c-4e68-8d77-22805b4372d8)
-![image](https://github.com/user-attachments/assets/6802c8b1-840e-43cc-a4bc-18121c619593)
-
-Execution Succeeded:
-
-![image](https://github.com/user-attachments/assets/a4f7000e-e205-42fa-ab59-037fa818a291)
+Go back to the S3 dashboard — confirm:
+Files older than 30 days are gone.
+Newer files remain.
