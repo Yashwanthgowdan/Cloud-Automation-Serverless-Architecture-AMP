@@ -1,0 +1,108 @@
+Assignment 1: Automated Instance Management Using AWS Lambda and Boto3
+
+Objective:
+Gain hands-on experience with AWS Lambda and Boto3, Amazon’s Python SDK and creation of a Lambda function that automatically starts or stops EC2 instances based on their tags.
+
+Requirements:
+1. Setup EC2 Instances
+2. Create IAM Role for Lambda
+3. Write and Deploy Lambda Function
+4. Test and Verify
+
+⚙️ Step-by-Step Instructions
+
+1. EC2 Setup
+Go to the EC2 Dashboard in AWS Console.
+
+Launch two EC2 instances and Tag the instances:
+First instance: Key = Action | Value = Auto-Stop
+Second instance: Key = Action | Value = Auto-Start
+
+
+2. Create IAM Role for Lambda
+Go to the IAM Dashboard.
+
+Create a new IAM role with trusted entity Lambda.
+
+Attach the policy AmazonEC2FullAccess to this role.
+
+3. Create Lambda Function
+Open the AWS Lambda Dashboard.
+
+Click Create function.
+
+Choose Python 3.x runtime.
+
+Attach the IAM role you created.
+
+Copy and paste the following example Python script:
+
+🐍 Example Lambda Python Script
+python
+Copy
+Edit
+import boto3
+
+def lambda_handler(event, context):
+    ec2 = boto3.client('ec2')
+
+    # Stop instances with Action=Auto-Stop tag
+    stop_instances = ec2.describe_instances(
+        Filters=[
+            {'Name': 'tag:Action', 'Values': ['Auto-Stop']},
+            {'Name': 'instance-state-name', 'Values': ['running']}
+        ]
+    )
+
+    stop_ids = []
+    for reservation in stop_instances['Reservations']:
+        for instance in reservation['Instances']:
+            stop_ids.append(instance['InstanceId'])
+
+    if stop_ids:
+        ec2.stop_instances(InstanceIds=stop_ids)
+        print(f"Stopped instances: {stop_ids}")
+    else:
+        print("No instances to stop.")
+
+    # Start instances with Action=Auto-Start tag
+    start_instances = ec2.describe_instances(
+        Filters=[
+            {'Name': 'tag:Action', 'Values': ['Auto-Start']},
+            {'Name': 'instance-state-name', 'Values': ['stopped']}
+        ]
+    )
+
+    start_ids = []
+    for reservation in start_instances['Reservations']:
+        for instance in reservation['Instances']:
+            start_ids.append(instance['InstanceId'])
+
+    if start_ids:
+        ec2.start_instances(InstanceIds=start_ids)
+        print(f"Started instances: {start_ids}")
+    else:
+        print("No instances to start.")
+
+Notes for Script:
+
+This script:
+
+Finds all running instances tagged Auto-Stop and stops them.
+
+Finds all stopped instances tagged Auto-Start and starts them.
+
+Prints the instance IDs for logging.
+
+AWS Lambda timeout should be at least 1 minute to ensure actions complete.
+
+4. Test the Lambda Function
+Deploy your Lambda function.
+
+Click Test and run it manually.
+
+Go back to the EC2 Dashboard to verify:
+
+The Auto-Stop instance is stopped.
+
+The Auto-Start instance is running.
