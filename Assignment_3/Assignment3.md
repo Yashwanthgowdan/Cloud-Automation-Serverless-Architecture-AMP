@@ -72,6 +72,7 @@ Step	Details
 Deploy your Lambda function.
 Create a test event.
 Click Test.
+![image](https://github.com/user-attachments/assets/e5a18ef0-6708-4377-86f4-fc347231c1b4)
 
 Check the Lambda logs in CloudWatch.
 You’ll see which buckets are unencrypted.
