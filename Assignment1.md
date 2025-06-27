@@ -94,11 +94,14 @@ The Auto-Stop instance is stopped.
 The Auto-Start instance is running.
 
 Instances before runing the script:
+
 ![image](https://github.com/user-attachments/assets/0918edd4-81bf-4840-97c9-d6d79e414152)
 
 Instances after runing the script:
+
 ![image](https://github.com/user-attachments/assets/5327ace1-c73c-4e68-8d77-22805b4372d8)
 ![image](https://github.com/user-attachments/assets/6802c8b1-840e-43cc-a4bc-18121c619593)
 
 Execution Succeeded:
+
 ![image](https://github.com/user-attachments/assets/a4f7000e-e205-42fa-ab59-037fa818a291)
