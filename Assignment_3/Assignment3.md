@@ -1,51 +1,35 @@
 Assignment 3: Monitor Unencrypted S3 Buckets Using AWS Lambda and Boto3
-✅ Objective
+
+Objective
 Improve your AWS security posture by creating an AWS Lambda function that automatically detects S3 buckets without server-side encryption (SSE).
 
-📌 Task Overview
-Goal: Find S3 buckets that do not have server-side encryption enabled.
+Task Goal: 
+Find S3 buckets that do not have server-side encryption enabled.
 
 What it does:
-
 Lists all buckets in your account.
-
 Checks their encryption configuration.
-
 Logs bucket names that are unencrypted.
 
-⚙️ Step-by-Step Instructions
-1️⃣ S3 Bucket Setup
+Step-by-Step Instructions
+1. S3 Bucket Setup
 Open the S3 Dashboard.
-
 Create multiple S3 buckets:
-
 Make sure some have server-side encryption enabled (AES-256 or aws:kms).
-
 Leave some unencrypted to test detection.
 
-2️⃣ Create Lambda IAM Role
+2️. Create Lambda IAM Role
 Open the IAM Dashboard.
-
 Create a new IAM role for Lambda.
-
 Attach the AmazonS3ReadOnlyAccess policy.
-✅ This is sufficient since you’re only reading configuration, not modifying buckets.
 
-3️⃣ Create Lambda Function
+3️. Create Lambda Function
 Open the AWS Lambda Dashboard.
-
 Click Create Function.
-
-Choose Python 3.x runtime.
-
+Choose Python 3.13 runtime.
 Attach the IAM role created in step 2.
-
 Copy and paste the following Python script:
 
-🐍 Example Lambda Python Script
-python
-Copy
-Edit
 import boto3
 from botocore.exceptions import ClientError
 
@@ -76,21 +60,18 @@ def lambda_handler(event, context):
         print(f"Buckets WITHOUT server-side encryption: {unencrypted_buckets}")
     else:
         print("All buckets have server-side encryption enabled.")
-✅ How it works
+
+How it works
 Step	Details
 1️⃣	Uses list_buckets to find all buckets.
 2️⃣	Calls get_bucket_encryption for each bucket.
 3️⃣	If ServerSideEncryptionConfigurationNotFoundError is raised, the bucket is unencrypted.
 4️⃣	Prints out the names of all unencrypted buckets.
 
-4️⃣ Manual Invocation
+4️. Manual Invocation
 Deploy your Lambda function.
-
-Create a test event (an empty JSON {} works fine).
-
+Create a test event.
 Click Test.
 
 Check the Lambda logs in CloudWatch.
-
 You’ll see which buckets are unencrypted.
-
