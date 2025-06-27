@@ -1,42 +1,30 @@
 import boto3
+from botocore.exceptions import ClientError
 
 def lambda_handler(event, context):
-    ec2 = boto3.client('ec2')
+    s3 = boto3.client('s3')
 
-    # Stop instances with Action=Auto-Stop tag
-    stop_instances = ec2.describe_instances(
-        Filters=[
-            {'Name': 'tag:Action', 'Values': ['Auto-Stop']},
-            {'Name': 'instance-state-name', 'Values': ['running']}
-        ]
-    )
+    # Get the list of all buckets
+    response = s3.list_buckets()
+    buckets = response['Buckets']
 
-    stop_ids = []
-    for reservation in stop_instances['Reservations']:
-        for instance in reservation['Instances']:
-            stop_ids.append(instance['InstanceId'])
+    unencrypted_buckets = []
 
-    if stop_ids:
-        ec2.stop_instances(InstanceIds=stop_ids)
-        print(f"Stopped instances: {stop_ids}")
+    for bucket in buckets:
+        bucket_name = bucket['Name']
+        try:
+            enc = s3.get_bucket_encryption(Bucket=bucket_name)
+            rules = enc['ServerSideEncryptionConfiguration']['Rules']
+            print(f"Bucket '{bucket_name}' is encrypted with rules: {rules}")
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == 'ServerSideEncryptionConfigurationNotFoundError':
+                # This means the bucket does not have server-side encryption enabled
+                unencrypted_buckets.append(bucket_name)
+            else:
+                print(f"Error checking encryption for bucket {bucket_name}: {e}")
+
+    if unencrypted_buckets:
+        print(f"Buckets WITHOUT server-side encryption: {unencrypted_buckets}")
     else:
-        print("No instances to stop.")
-
-    # Start instances with Action=Auto-Start tag
-    start_instances = ec2.describe_instances(
-        Filters=[
-            {'Name': 'tag:Action', 'Values': ['Auto-Start']},
-            {'Name': 'instance-state-name', 'Values': ['stopped']}
-        ]
-    )
-
-    start_ids = []
-    for reservation in start_instances['Reservations']:
-        for instance in reservation['Instances']:
-            start_ids.append(instance['InstanceId'])
-
-    if start_ids:
-        ec2.start_instances(InstanceIds=start_ids)
-        print(f"Started instances: {start_ids}")
-    else:
-        print("No instances to start.")
+        print("All buckets have server-side encryption enabled.")
